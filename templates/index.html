@@ -1,1 +1,417 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Legal Document Summarizer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanta/0.5.21/vanta.net.min.js"></script>
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+    <style>
+        /* General Styles */
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+            color: #ffffff;
+            background-color: #1a1a2e; /* Default dark background */
+        }
 
+        /* Animated Background (Vanta.js) */
+        #vanta-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Container Styles */
+        .container {
+            background: rgba(255, 255, 255, 0.1); /* Glassmorphism effect */
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+            backdrop-filter: blur(10px); /* Blur effect */
+            border: 1px solid rgba(255, 255, 255, 0.2); /* Subtle border */
+            animation: fadeIn 1s ease-in-out; /* Fade-in animation */
+        }
+
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            color: #ffffff;
+            margin-bottom: 1.5rem;
+            font-size: 2.5rem;
+            font-weight: 600;
+        }
+
+        h2 {
+            color: #cccccc;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            font-weight: 400;
+        }
+
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            resize: vertical;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        textarea:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+        }
+
+        textarea::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        input[type="file"] {
+            margin-bottom: 1rem;
+        }
+
+        button {
+            background-color: #007bff;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4);
+        }
+
+        /* Summary Output */
+        #summary {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            margin-top: 1rem;
+            text-align: left;
+            font-size: 1rem;
+            color: #ffffff;
+            white-space: pre-wrap; /* Preserve formatting */
+            max-height: 200px; /* Fixed height for scrollable area */
+            overflow-y: auto; /* Enable vertical scrolling */
+            animation: fadeInSummary 0.5s ease-in-out; /* Fade-in animation */
+        }
+
+        /* Custom Scrollbar Styling */
+        #summary::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #summary::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+
+        #summary::-webkit-scrollbar-thumb {
+            background: #007bff;
+            border-radius: 4px;
+        }
+
+        #summary::-webkit-scrollbar-thumb:hover {
+            background: #0056b3;
+        }
+
+        @keyframes fadeInSummary {
+            0% {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Loading Animation */
+        #loader {
+            display: none; /* Hidden by default */
+            margin: 20px auto;
+        }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            z-index: 3;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .theme-toggle i {
+            color: #ffffff;
+            font-size: 1.2rem;
+        }
+
+        /* Light Theme Styles */
+        body.light-theme {
+            background-color: #f0f0f0;
+            color: #333;
+        }
+
+        body.light-theme .container {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+        }
+
+        body.light-theme textarea {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            border-color: rgba(0, 0, 0, 0.3);
+        }
+
+        body.light-theme #summary {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            border-color: rgba(0, 0, 0, 0.3);
+        }
+
+        body.light-theme .theme-toggle {
+            background: rgba(0, 0, 0, 0.1);
+            border-color: rgba(0, 0, 0, 0.3);
+        }
+
+        body.light-theme .theme-toggle i {
+            color: #333;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 600px) {
+            .container {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            h2 {
+                font-size: 1.25rem;
+            }
+
+            textarea {
+                height: 120px;
+            }
+
+            #summary {
+                max-height: 150px; /* Smaller scrollable area for mobile */
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div id="vanta-background"></div>
+
+    <!-- Theme Toggle -->
+    <div class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+        <i class="fas fa-moon"></i>
+    </div>
+
+    <div class="container">
+        <h1>Legal Document Summarizer</h1>
+        <form id="summarizeForm">
+            <!-- Textarea for pasting text -->
+            <textarea id="document" placeholder="Paste your legal document here..."></textarea>
+
+            <!-- File upload input -->
+            <label for="fileInput" class="file-upload-label">
+                Or upload a document:
+                <input type="file" id="fileInput" accept=".txt,.pdf">
+            </label>
+
+            <!-- Summarize button -->
+            <button type="button" onclick="summarize()">Summarize</button>
+        </form>
+
+        <!-- Loading Animation -->
+        <lottie-player id="loader" src="https://assets10.lottiefiles.com/packages/lf20_raiw2hpe.json" background="transparent" speed="1" style="width: 100px; height: 100px;" loop autoplay></lottie-player>
+
+        <h2>Summary:</h2>
+        <div id="summary"></div>
+    </div>
+
+    <script>
+        // Initialize Vanta.js animated background
+        VANTA.NET({
+            el: "#vanta-background",
+            mouseControls: true,
+            touchControls: true,
+            gyroControls: false,
+            minHeight: 200.00,
+            minWidth: 200.00,
+            scale: 1.00,
+            scaleMobile: 1.00,
+            color: 0x3f8dff,
+            backgroundColor: 0x1a1a2e
+        });
+
+        // Function to summarize the document
+        function summarize() {
+            const documentText = document.getElementById('document').value;
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            const loader = document.getElementById('loader');
+            const summaryElement = document.getElementById('summary');
+            const summarizeButton = document.querySelector('button');
+
+            // Check if either the textarea or file input has content
+            if (!documentText.trim() && !file) {
+                alert("Please paste a legal document or upload a file to summarize.");
+                return;
+            }
+
+            // Validate file type
+            if (file && !['text/plain', 'application/pdf'].includes(file.type)) {
+                alert("Please upload a .txt or .pdf file.");
+                return;
+            }
+
+            // Show loader and disable button
+            loader.style.display = 'block';
+            summarizeButton.disabled = true;
+            summarizeButton.innerText = 'Summarizing...';
+            summaryElement.innerText = ''; // Clear previous summary
+
+            let contentPromise;
+
+            if (file) {
+                // If a file is uploaded, read its contents
+                contentPromise = readFileContent(file);
+            } else {
+                // If text is pasted, use it directly
+                contentPromise = Promise.resolve(documentText);
+            }
+
+            // Send the content to the server for summarization
+            contentPromise
+                .then(content => {
+                    console.log("Content sent to backend:", content); // Log the content
+                    return fetch('/summarize', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ document: content })
+                    });
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("Backend Response:", data); // Log the backend response
+                    if (data.error) {
+                        summaryElement.innerText = "Error: " + data.error;
+                    } else {
+                        // Display the parsed summary fields
+                        const summaryText = `
+                            Document Type: ${data["Document Type"] || "N/A"}
+                            Key Provisions: ${data["Key Provisions"] || "N/A"}
+                            Court’s Decision: ${data["Court’s Decision"] || "N/A"}
+                            Legal Implications: ${data["Legal Implications"] || "N/A"}
+                            Simplified Summary: ${data["Simplified Summary"] || "N/A"}
+                        `;
+                        summaryElement.innerText = summaryText;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    summaryElement.innerText = "An error occurred while summarizing the document.";
+                })
+                .finally(() => {
+                    loader.style.display = 'none'; // Hide loader
+                    summarizeButton.disabled = false; // Re-enable button
+                    summarizeButton.innerText = 'Summarize'; // Reset button text
+                });
+        }
+
+        // Function to read the content of an uploaded file
+        function readFileContent(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(reader.error);
+
+                if (file.type === 'application/pdf') {
+                    // Handle PDF files (requires a PDF parsing library on the backend)
+                    alert("PDF file upload is not supported yet. Please upload a .txt file.");
+                    reject("PDF files are not supported.");
+                } else {
+                    // Handle text files
+                    reader.readAsText(file);
+                }
+            });
+        }
+
+        // Function to toggle dark/light theme
+        function toggleTheme() {
+            const body = document.body;
+            body.classList.toggle('light-theme');
+            const themeIcon = document.querySelector('.theme-toggle i');
+            if (body.classList.contains('light-theme')) {
+                themeIcon.classList.remove('fa-moon');
+                themeIcon.classList.add('fa-sun');
+            } else {
+                themeIcon.classList.remove('fa-sun');
+                themeIcon.classList.add('fa-moon');
+            }
+        }
+    </script>
+</body>
+</html>
